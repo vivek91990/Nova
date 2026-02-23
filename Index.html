@@ -1,0 +1,1773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOVA — Echoes of Tomorrow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollToPlugin.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+    <style>
+        :root {
+            --bg: #050505;
+            --bg2: #0a0a0a;
+            --white: #ffffff;
+            --gray: #888;
+            --dim: #555;
+            --pink: #ff2d55;
+            --cyan: #00d4ff;
+            --font-heading: 'Bebas Neue', sans-serif;
+            --font-body: 'Outfit', sans-serif;
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { overflow-x: hidden; }
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--white);
+            overflow-x: hidden;
+            cursor: none;
+            -webkit-font-smoothing: antialiased;
+        }
+        a { color: inherit; text-decoration: none; cursor: none; }
+        button { cursor: none; font-family: var(--font-body); }
+        img { max-width: 100%; display: block; }
+
+        /* ===== PRELOADER ===== */
+        .preloader {
+            position: fixed; inset: 0; background: #000; z-index: 100000;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
+        }
+        .preloader-scanlines {
+            position: absolute; inset: 0; pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg, transparent, transparent 2px,
+                rgba(255,255,255,0.015) 2px, rgba(255,255,255,0.015) 4px
+            );
+            z-index: 2;
+        }
+        .preloader-name {
+            font-family: var(--font-heading);
+            font-size: clamp(5rem, 15vw, 12rem);
+            letter-spacing: 15px;
+            position: relative; z-index: 3;
+            animation: glitchText 0.15s steps(2) infinite;
+        }
+        .preloader-name .r { color: var(--pink); position: absolute; left: 2px; top: 1px; opacity: 0.7; clip-path: inset(10% 0 30% 0); animation: glitchR 0.3s steps(2) infinite; }
+        .preloader-name .c { color: var(--cyan); position: absolute; left: -2px; top: -1px; opacity: 0.7; clip-path: inset(40% 0 10% 0); animation: glitchC 0.3s steps(2) infinite reverse; }
+        .preloader-name .main { position: relative; }
+        .preloader-shutoff {
+            position: absolute; inset: 0; background: #fff; z-index: 10;
+            opacity: 0; pointer-events: none;
+        }
+
+        @keyframes glitchText {
+            0% { transform: translate(0); }
+            25% { transform: translate(-2px, 1px); }
+            50% { transform: translate(1px, -1px); }
+            75% { transform: translate(2px, 0); }
+            100% { transform: translate(0); }
+        }
+        @keyframes glitchR {
+            0% { clip-path: inset(10% 0 60% 0); transform: translate(3px, 0); }
+            50% { clip-path: inset(50% 0 10% 0); transform: translate(-3px, 0); }
+            100% { clip-path: inset(20% 0 40% 0); transform: translate(2px, 0); }
+        }
+        @keyframes glitchC {
+            0% { clip-path: inset(40% 0 20% 0); transform: translate(-2px, 0); }
+            50% { clip-path: inset(5% 0 50% 0); transform: translate(2px, 0); }
+            100% { clip-path: inset(60% 0 5% 0); transform: translate(-3px, 0); }
+        }
+
+        /* ===== CURSOR ===== */
+        .cursor-main {
+            width: 30px; height: 30px;
+            border: 2px solid var(--pink);
+            border-radius: 50%;
+            position: fixed; top: 0; left: 0;
+            pointer-events: none; z-index: 99999;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px rgba(255,45,85,0.4), 0 0 30px rgba(255,45,85,0.2);
+            transition: width 0.3s, height 0.3s, border-color 0.3s, box-shadow 0.3s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .cursor-main .cursor-label {
+            font-size: 8px; font-weight: 600; letter-spacing: 2px;
+            text-transform: uppercase; opacity: 0; transition: opacity 0.3s;
+            white-space: nowrap; color: var(--pink);
+        }
+        .cursor-main.active {
+            width: 70px; height: 70px;
+            border-color: var(--cyan);
+            box-shadow: 0 0 20px rgba(0,212,255,0.4), 0 0 40px rgba(0,212,255,0.2);
+        }
+        .cursor-main.active .cursor-label { opacity: 1; color: var(--cyan); }
+        .cursor-trail {
+            width: 6px; height: 6px;
+            background: var(--pink);
+            border-radius: 50%;
+            position: fixed; pointer-events: none;
+            z-index: 99998;
+            transform: translate(-50%, -50%);
+        }
+
+        /* ===== STAR FIELD ===== */
+        .starfield { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+        .star {
+            position: absolute; background: #fff; border-radius: 50%;
+            animation: starDrift linear infinite;
+        }
+        @keyframes starDrift {
+            0% { transform: translateY(0); opacity: 0.6; }
+            100% { transform: translateY(-120vh); opacity: 0; }
+        }
+
+        /* ===== SCANLINES GLOBAL ===== */
+        .global-scanlines {
+            position: fixed; inset: 0; pointer-events: none; z-index: 9998;
+            background: repeating-linear-gradient(
+                0deg, transparent, transparent 3px,
+                rgba(255,255,255,0.008) 3px, rgba(255,255,255,0.008) 4px
+            );
+        }
+
+        /* ===== NOISE ===== */
+        .noise-overlay {
+            position: fixed; inset: -50%; width: 200%; height: 200%;
+            pointer-events: none; z-index: 9997; opacity: 0.025;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            animation: noiseDrift 0.5s steps(8) infinite;
+        }
+        @keyframes noiseDrift {
+            0% { transform: translate(0); } 25% { transform: translate(-5%, -5%); }
+            50% { transform: translate(5%, -10%); } 75% { transform: translate(-10%, 5%); }
+            100% { transform: translate(0); }
+        }
+
+        /* ===== NAV ===== */
+        .nav {
+            position: fixed; top: 0; left: 0; width: 100%;
+            padding: 22px 50px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 10000;
+            transition: background 0.5s, backdrop-filter 0.5s;
+        }
+        .nav.scrolled {
+            background: rgba(5,5,5,0.8);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        }
+        .nav-logo {
+            font-family: var(--font-heading);
+            font-size: 2rem; letter-spacing: 6px;
+            transition: text-shadow 0.3s;
+        }
+        .nav-logo:hover {
+            text-shadow: 0 0 20px var(--pink), 0 0 40px var(--pink);
+        }
+        .nav-links { display: flex; gap: 35px; list-style: none; }
+        .nav-links a {
+            font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase;
+            font-weight: 300; position: relative; padding: 5px 0;
+            transition: color 0.3s;
+        }
+        .nav-links a::after {
+            content: ''; position: absolute; bottom: 0; left: 0;
+            width: 0; height: 1px; background: var(--pink);
+            transition: width 0.4s cubic-bezier(0.25,1,0.5,1);
+        }
+        .nav-links a:hover { color: var(--pink); }
+        .nav-links a:hover::after { width: 100%; }
+        .nav-hamburger {
+            display: none; background: none; border: none;
+            width: 32px; height: 22px; position: relative; z-index: 10002;
+        }
+        .nav-hamburger span {
+            position: absolute; left: 0; width: 100%; height: 2px;
+            background: var(--white); transition: 0.4s;
+        }
+        .nav-hamburger span:nth-child(1) { top: 0; }
+        .nav-hamburger span:nth-child(2) { top: 50%; transform: translateY(-50%); }
+        .nav-hamburger span:nth-child(3) { bottom: 0; }
+        .nav-hamburger.open span:nth-child(1) { top: 50%; transform: rotate(45deg); }
+        .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+        .nav-hamburger.open span:nth-child(3) { bottom: 50%; transform: rotate(-45deg); }
+
+        .mobile-menu {
+            position: fixed; inset: 0; background: rgba(5,5,5,0.97);
+            z-index: 10001; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 30px;
+            opacity: 0; pointer-events: none; transition: opacity 0.5s;
+        }
+        .mobile-menu.open { opacity: 1; pointer-events: all; }
+        .mobile-menu a {
+            font-family: var(--font-heading);
+            font-size: clamp(2rem, 6vw, 3.5rem);
+            letter-spacing: 6px; opacity: 0; transform: translateX(40px);
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            min-height: 100vh; display: flex; align-items: center;
+            justify-content: center; text-align: center;
+            position: relative; overflow: hidden; padding: 0 30px;
+        }
+        .hero-grain {
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse at center, transparent 0%, var(--bg) 70%);
+            z-index: 1;
+        }
+        .hero-content { position: relative; z-index: 2; }
+        .hero-new-album {
+            display: inline-flex; align-items: center; gap: 10px;
+            font-size: 0.8rem; letter-spacing: 5px; text-transform: uppercase;
+            color: var(--gray); margin-bottom: 25px;
+        }
+        .recording-dot {
+            width: 8px; height: 8px; background: var(--pink);
+            border-radius: 50%; animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,45,85,0.6); } 50% { opacity: 0.6; box-shadow: 0 0 0 8px rgba(255,45,85,0); } }
+
+        .hero-title {
+            font-family: var(--font-heading);
+            font-size: clamp(6rem, 20vw, 18rem);
+            line-height: 0.9; letter-spacing: 10px;
+            background: linear-gradient(135deg, var(--pink), var(--cyan));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            animation: floatTitle 4s ease-in-out infinite;
+            position: relative;
+        }
+        .hero-title-glow {
+            position: absolute; inset: 0;
+            font-family: var(--font-heading);
+            font-size: clamp(6rem, 20vw, 18rem);
+            line-height: 0.9; letter-spacing: 10px;
+            color: transparent;
+            text-shadow: 0 0 80px rgba(255,45,85,0.3), 0 0 120px rgba(0,212,255,0.2);
+            pointer-events: none; z-index: -1;
+        }
+        @keyframes floatTitle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+
+        .hero-subtitle {
+            font-size: clamp(0.9rem, 2vw, 1.3rem);
+            letter-spacing: 12px; font-weight: 200;
+            color: var(--gray); margin: 25px 0 40px;
+            text-transform: uppercase;
+        }
+        .hero-buttons { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+        .btn {
+            padding: 16px 40px; border-radius: 50px;
+            font-size: 0.85rem; letter-spacing: 3px; text-transform: uppercase;
+            font-weight: 500; font-family: var(--font-body);
+            position: relative; overflow: hidden; transition: all 0.4s;
+            border: none; display: inline-flex; align-items: center; gap: 10px;
+        }
+        .btn-filled {
+            background: var(--pink); color: #fff;
+            box-shadow: 0 0 30px rgba(255,45,85,0.3);
+        }
+        .btn-filled:hover { box-shadow: 0 0 50px rgba(255,45,85,0.5); transform: scale(1.05); }
+        .btn-outline {
+            background: transparent; color: var(--white);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .btn-outline:hover { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 30px rgba(0,212,255,0.2); }
+        .btn .ripple {
+            position: absolute; border-radius: 50%; background: rgba(255,255,255,0.3);
+            transform: scale(0); animation: rippleAnim 0.6s ease-out;
+            pointer-events: none;
+        }
+        @keyframes rippleAnim { to { transform: scale(4); opacity: 0; } }
+
+        .hero-scroll-indicator {
+            position: absolute; bottom: 40px; left: 50%;
+            transform: translateX(-50%); z-index: 2;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+        .scroll-chevron {
+            width: 24px; height: 24px;
+            border-right: 2px solid var(--pink); border-bottom: 2px solid var(--pink);
+            transform: rotate(45deg); animation: bounceChevron 2s ease-in-out infinite;
+        }
+        @keyframes bounceChevron { 0%, 100% { transform: rotate(45deg) translate(0); opacity: 0.6; } 50% { transform: rotate(45deg) translate(5px, 5px); opacity: 1; } }
+
+        /* ===== WAVEFORM / AUDIO BARS ===== */
+        .waveform-mini {
+            display: none; align-items: flex-end; gap: 3px;
+            height: 30px; margin-top: 25px; justify-content: center;
+        }
+        .waveform-mini.active { display: flex; }
+        .waveform-mini .bar {
+            width: 3px; background: var(--pink); border-radius: 2px;
+            animation: waveBar 0.8s ease-in-out infinite alternate;
+        }
+        @keyframes waveBar { 0% { height: 5px; } 100% { height: 100%; } }
+
+        /* ===== AUDIO WAVEFORM SECTION ===== */
+        .waveform-section {
+            padding: 120px 50px;
+            max-width: 1400px; margin: 0 auto;
+        }
+        .waveform-section .section-label {
+            font-size: 0.75rem; letter-spacing: 5px;
+            text-transform: uppercase; color: var(--pink);
+            text-align: center; margin-bottom: 15px;
+        }
+        .waveform-section .section-title {
+            font-family: var(--font-heading);
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            text-align: center; letter-spacing: 5px; margin-bottom: 60px;
+        }
+        .waveform-visualizer {
+            display: flex; align-items: flex-end; justify-content: center;
+            gap: 3px; height: 120px; margin-bottom: 60px;
+            padding: 0 20px;
+        }
+        .wave-bar {
+            flex: 1; max-width: 8px; min-width: 3px;
+            background: linear-gradient(to top, var(--pink), var(--cyan));
+            border-radius: 4px 4px 0 0;
+            height: 0; transition: height 0.3s;
+        }
+        .album-content {
+            display: grid; grid-template-columns: 300px 1fr;
+            gap: 60px; align-items: start;
+        }
+        .album-art {
+            position: relative; border-radius: 12px; overflow: hidden;
+            aspect-ratio: 1; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .album-art img { width: 100%; height: 100%; object-fit: cover; }
+        .album-art-glow {
+            position: absolute; inset: -2px;
+            background: linear-gradient(135deg, var(--pink), var(--cyan));
+            border-radius: 14px; z-index: -1;
+            filter: blur(15px); opacity: 0.4;
+        }
+        .tracklist { list-style: none; }
+        .track-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06);
+            transition: all 0.3s; border-radius: 8px; cursor: none;
+        }
+        .track-item:hover {
+            background: rgba(255,255,255,0.03);
+            border-color: rgba(255,45,85,0.2);
+        }
+        .track-item:hover .track-name { color: var(--pink); }
+        .track-item:hover .track-play { opacity: 1; }
+        .track-left { display: flex; align-items: center; gap: 15px; }
+        .track-num { font-size: 0.8rem; color: var(--dim); width: 25px; font-weight: 300; }
+        .track-name { font-weight: 400; font-size: 0.95rem; transition: color 0.3s; }
+        .track-right { display: flex; align-items: center; gap: 15px; }
+        .track-duration { font-size: 0.8rem; color: var(--dim); font-weight: 300; }
+        .track-play {
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 1px solid var(--pink); background: none;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.3s;
+            color: var(--pink); font-size: 10px;
+        }
+        .track-item.playing .track-play { opacity: 1; background: var(--pink); color: #fff; }
+        .track-item.playing .track-name { color: var(--pink); }
+
+        /* ===== TOUR SECTION ===== */
+        .tour-section {
+            padding: 120px 50px; position: relative; overflow: hidden;
+        }
+        .tour-section .section-label {
+            font-size: 0.75rem; letter-spacing: 5px;
+            text-transform: uppercase; color: var(--cyan);
+            text-align: center; margin-bottom: 15px;
+        }
+        .tour-title {
+            font-family: var(--font-heading);
+            font-size: clamp(3rem, 7vw, 6rem);
+            text-align: center; letter-spacing: 8px;
+            margin-bottom: 60px; position: relative;
+        }
+        .tour-title .glitch-layer {
+            position: absolute; inset: 0; opacity: 0;
+        }
+        .tour-title .glitch-layer.r {
+            color: var(--pink); clip-path: inset(15% 0 55% 0);
+            transform: translate(3px, 0);
+        }
+        .tour-title .glitch-layer.c {
+            color: var(--cyan); clip-path: inset(50% 0 15% 0);
+            transform: translate(-3px, 0);
+        }
+        .tour-globe {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px; height: 500px;
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 50%; opacity: 0.15;
+            animation: globeRotate 30s linear infinite;
+        }
+        .tour-globe::before, .tour-globe::after {
+            content: ''; position: absolute; border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+        .tour-globe::before {
+            width: 100%; height: 60%; top: 20%; left: 0;
+        }
+        .tour-globe::after {
+            width: 60%; height: 100%; top: 0; left: 20%;
+        }
+        @keyframes globeRotate { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+        .tour-list {
+            max-width: 900px; margin: 0 auto;
+            position: relative; z-index: 2;
+        }
+        .tour-row {
+            display: grid; grid-template-columns: 120px 1fr 1fr 140px;
+            gap: 20px; align-items: center;
+            padding: 22px 25px; border-bottom: 1px solid rgba(255,255,255,0.06);
+            opacity: 0; transition: background 0.3s;
+        }
+        .tour-row:hover { background: rgba(255,255,255,0.02); }
+        .tour-date {
+            font-family: var(--font-heading);
+            font-size: 1.2rem; letter-spacing: 2px; color: var(--pink);
+        }
+        .tour-city { font-weight: 500; font-size: 1rem; }
+        .tour-venue { color: var(--dim); font-size: 0.9rem; font-weight: 300; }
+        .tour-btn {
+            padding: 10px 24px; border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: transparent; color: var(--white);
+            font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase;
+            font-family: var(--font-body); transition: all 0.3s;
+        }
+        .tour-btn:hover {
+            background: var(--pink); border-color: var(--pink);
+            box-shadow: 0 0 20px rgba(255,45,85,0.3);
+        }
+        .tour-row.sold-out .tour-city,
+        .tour-row.sold-out .tour-venue { text-decoration: line-through; opacity: 0.4; }
+        .sold-out-badge {
+            padding: 6px 16px; border-radius: 50px;
+            background: rgba(255,45,85,0.15); color: var(--pink);
+            font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase;
+            font-weight: 600; text-align: center;
+        }
+
+        /* ===== GALLERY ===== */
+        .gallery-section {
+            padding: 120px 50px;
+        }
+        .gallery-section .section-label {
+            font-size: 0.75rem; letter-spacing: 5px;
+            text-transform: uppercase; color: var(--cyan);
+            text-align: center; margin-bottom: 15px;
+        }
+        .gallery-section .section-title {
+            font-family: var(--font-heading);
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            text-align: center; letter-spacing: 5px; margin-bottom: 60px;
+        }
+        .gallery-grid {
+            max-width: 1300px; margin: 0 auto;
+            columns: 3; column-gap: 20px;
+        }
+        .gallery-item {
+            break-inside: avoid; margin-bottom: 20px;
+            position: relative; overflow: hidden;
+            border-radius: 8px;
+            clip-path: circle(0% at 50% 50%);
+        }
+        .gallery-item img {
+            width: 100%; display: block;
+            filter: saturate(0.4); transition: all 0.6s;
+        }
+        .gallery-item:hover img {
+            filter: saturate(1); transform: scale(1.05);
+        }
+        .gallery-overlay {
+            position: absolute; inset: 0;
+            background: rgba(5,5,5,0.5);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.4s;
+        }
+        .gallery-item:hover .gallery-overlay { opacity: 1; }
+        .gallery-view-text {
+            font-size: 0.8rem; letter-spacing: 4px; text-transform: uppercase;
+            border: 1px solid var(--white); padding: 10px 24px; border-radius: 50px;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+            z-index: 100001; display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.4s;
+        }
+        .lightbox.active { opacity: 1; pointer-events: all; }
+        .lightbox img {
+            max-width: 90vw; max-height: 90vh; border-radius: 8px;
+            object-fit: contain;
+        }
+        .lightbox-close {
+            position: absolute; top: 30px; right: 30px;
+            width: 50px; height: 50px; border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.2); background: none;
+            color: #fff; font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s;
+        }
+        .lightbox-close:hover { border-color: var(--pink); color: var(--pink); }
+
+        /* ===== VIDEO SECTION ===== */
+        .video-section {
+            padding: 120px 50px; position: relative;
+        }
+        .video-section .section-label {
+            font-size: 0.75rem; letter-spacing: 5px;
+            text-transform: uppercase; color: var(--pink);
+            text-align: center; margin-bottom: 15px;
+        }
+        .video-section .section-title {
+            font-family: var(--font-heading);
+            font-size: clamp(1.5rem, 3vw, 2.5rem);
+            text-align: center; letter-spacing: 8px; margin-bottom: 50px;
+            font-weight: 400;
+        }
+        .video-wrapper {
+            max-width: 1000px; margin: 0 auto;
+            position: relative; aspect-ratio: 16/9;
+            border-radius: 16px; overflow: hidden;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+        }
+        .video-thumbnail {
+            width: 100%; height: 100%; object-fit: cover;
+            transition: transform 0.8s;
+        }
+        .video-wrapper:hover .video-thumbnail { transform: scale(1.03); }
+        .video-play-btn {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90px; height: 90px; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            background: rgba(255,45,85,0.2); backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.4s; z-index: 3;
+        }
+        .video-play-btn:hover {
+            transform: translate(-50%, -50%) scale(1.15);
+            background: var(--pink); border-color: var(--pink);
+            box-shadow: 0 0 50px rgba(255,45,85,0.5);
+        }
+        .video-play-btn::after {
+            content: ''; width: 0; height: 0;
+            border-left: 22px solid #fff; border-top: 14px solid transparent;
+            border-bottom: 14px solid transparent; margin-left: 5px;
+        }
+        .video-iframe-wrapper {
+            position: absolute; inset: 0; z-index: 5;
+            background: #000; opacity: 0; pointer-events: none;
+            transition: opacity 0.5s;
+        }
+        .video-iframe-wrapper.active { opacity: 1; pointer-events: all; }
+        .video-iframe-wrapper iframe { width: 100%; height: 100%; border: none; }
+
+        /* ===== ABOUT SECTION ===== */
+        .about-section {
+            padding: 120px 50px;
+            max-width: 1400px; margin: 0 auto;
+        }
+        .about-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 80px; align-items: center;
+        }
+        .about-portrait {
+            position: relative; border-radius: 16px; overflow: hidden;
+            aspect-ratio: 3/4;
+        }
+        .about-portrait img {
+            width: 100%; height: 100%; object-fit: cover;
+            filter: grayscale(100%);
+            transition: filter 1.5s ease;
+        }
+        .about-portrait.colored img { filter: grayscale(0%); }
+        .about-portrait-glow {
+            position: absolute; inset: -3px;
+            background: linear-gradient(135deg, var(--pink), var(--cyan));
+            border-radius: 18px; z-index: -1;
+            filter: blur(20px); opacity: 0.3;
+        }
+        .about-info .about-name {
+            font-family: var(--font-heading);
+            font-size: clamp(3rem, 6vw, 5rem);
+            letter-spacing: 6px; margin-bottom: 15px;
+        }
+        .about-genres {
+            display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 25px;
+        }
+        .genre-pill {
+            padding: 6px 18px; border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.15);
+            font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase;
+            font-weight: 300;
+        }
+        .about-bio {
+            color: var(--gray); line-height: 1.8; font-size: 0.95rem;
+            margin-bottom: 15px; font-weight: 300;
+        }
+        .about-socials {
+            display: flex; gap: 15px; margin-top: 30px;
+        }
+        .social-circle {
+            width: 48px; height: 48px; border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.15);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; font-weight: 600; letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+        .social-circle:hover {
+            border-color: var(--pink);
+            box-shadow: 0 0 20px rgba(255,45,85,0.3);
+            color: var(--pink);
+        }
+
+        /* ===== MERCH ===== */
+        .merch-section {
+            padding: 120px 0; overflow: hidden;
+        }
+        .merch-section .section-label {
+            font-size: 0.75rem; letter-spacing: 5px;
+            text-transform: uppercase; color: var(--cyan);
+            text-align: center; margin-bottom: 15px;
+        }
+        .merch-section .section-title {
+            font-family: var(--font-heading);
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            text-align: center; letter-spacing: 5px; margin-bottom: 60px;
+        }
+        .merch-track-wrapper { overflow: hidden; }
+        .merch-track {
+            display: flex; gap: 30px; padding: 20px 50px;
+            width: max-content;
+            animation: merchScroll 30s linear infinite;
+        }
+        .merch-track:hover { animation-play-state: paused; }
+        @keyframes merchScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+        .merch-card {
+            width: 280px; flex-shrink: 0;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; overflow: hidden;
+            backdrop-filter: blur(10px);
+            transition: all 0.4s;
+        }
+        .merch-card:hover {
+            border-color: rgba(255,45,85,0.2);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .merch-image {
+            width: 100%; aspect-ratio: 1; overflow: hidden;
+            background: rgba(255,255,255,0.02);
+        }
+        .merch-image img {
+            width: 100%; height: 100%; object-fit: cover;
+            transition: transform 0.6s;
+        }
+        .merch-card:hover .merch-image img { transform: scale(1.08) rotate(2deg); }
+        .merch-info { padding: 20px; }
+        .merch-name { font-weight: 500; font-size: 1rem; margin-bottom: 5px; }
+        .merch-price { color: var(--pink); font-size: 0.9rem; margin-bottom: 12px; }
+        .merch-shop-link {
+            font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase;
+            color: var(--dim); transition: color 0.3s;
+        }
+        .merch-shop-link:hover { color: var(--cyan); }
+
+        /* ===== NEWSLETTER ===== */
+        .newsletter-section {
+            padding: 120px 50px; position: relative; overflow: hidden;
+        }
+        .newsletter-pulse {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px; height: 600px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,45,85,0.08) 0%, transparent 70%);
+            animation: pulseGlow 4s ease-in-out infinite;
+        }
+        @keyframes pulseGlow { 0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; } 50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; } }
+
+        .newsletter-content {
+            max-width: 600px; margin: 0 auto;
+            text-align: center; position: relative; z-index: 2;
+        }
+        .newsletter-heading {
+            font-family: var(--font-heading);
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            letter-spacing: 5px; margin-bottom: 15px;
+        }
+        .newsletter-sub {
+            color: var(--gray); font-size: 0.95rem;
+            line-height: 1.7; margin-bottom: 35px; font-weight: 300;
+        }
+        .newsletter-form {
+            display: flex; gap: 0; max-width: 480px; margin: 0 auto;
+        }
+        .newsletter-form input {
+            flex: 1; padding: 16px 20px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-right: none;
+            border-radius: 50px 0 0 50px;
+            color: var(--white); font-family: var(--font-body);
+            font-size: 0.9rem; outline: none;
+            transition: border-color 0.3s;
+        }
+        .newsletter-form input::placeholder { color: var(--dim); }
+        .newsletter-form input:focus { border-color: var(--pink); }
+        .newsletter-form button {
+            padding: 16px 32px;
+            background: var(--pink); color: #fff;
+            border: 1px solid var(--pink);
+            border-radius: 0 50px 50px 0;
+            font-family: var(--font-body);
+            font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase;
+            font-weight: 600; transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .newsletter-form button:hover {
+            box-shadow: 0 0 30px rgba(255,45,85,0.4);
+            transform: scale(1.03);
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            padding: 60px 50px; text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        .footer-logo {
+            font-family: var(--font-heading);
+            font-size: 2.5rem; letter-spacing: 8px; margin-bottom: 25px;
+        }
+        .footer-socials {
+            display: flex; gap: 20px; justify-content: center;
+            margin-bottom: 25px;
+        }
+        .footer-social-link {
+            font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase;
+            color: var(--dim); transition: all 0.3s; font-weight: 300;
+        }
+        .footer-social-link:hover {
+            color: var(--pink);
+            text-shadow: 0 0 15px rgba(255,45,85,0.4);
+        }
+        .footer-copy {
+            color: var(--dim); font-size: 0.8rem; font-weight: 300;
+            margin-bottom: 20px;
+        }
+        .back-to-top {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase;
+            color: var(--dim); background: none; border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px 28px; border-radius: 50px;
+            font-family: var(--font-body);
+            transition: all 0.3s;
+        }
+        .back-to-top:hover {
+            border-color: var(--cyan); color: var(--cyan);
+            box-shadow: 0 0 20px rgba(0,212,255,0.2);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .album-content { grid-template-columns: 1fr; }
+            .album-art { max-width: 300px; margin: 0 auto; }
+            .about-grid { grid-template-columns: 1fr; gap: 50px; }
+            .about-portrait { max-width: 400px; margin: 0 auto; }
+            .tour-row { grid-template-columns: 100px 1fr 120px; }
+            .tour-venue { display: none; }
+            .gallery-grid { columns: 2; }
+        }
+        @media (max-width: 768px) {
+            .nav { padding: 18px 25px; }
+            .nav-links { display: none; }
+            .nav-hamburger { display: flex; flex-direction: column; }
+            .hero { padding: 0 20px; }
+            .waveform-section { padding: 80px 25px; }
+            .tour-section { padding: 80px 25px; }
+            .gallery-section { padding: 80px 25px; }
+            .gallery-grid { columns: 2; column-gap: 12px; }
+            .gallery-item { margin-bottom: 12px; }
+            .video-section { padding: 80px 25px; }
+            .about-section { padding: 80px 25px; }
+            .about-grid { grid-template-columns: 1fr; }
+            .newsletter-section { padding: 80px 25px; }
+            .newsletter-form { flex-direction: column; gap: 12px; }
+            .newsletter-form input { border-radius: 50px; border-right: 1px solid rgba(255,255,255,0.15); }
+            .newsletter-form button { border-radius: 50px; width: 100%; }
+            .footer { padding: 50px 25px; }
+            .cursor-main, .cursor-trail { display: none !important; }
+            body { cursor: auto; }
+            a, button { cursor: pointer; }
+            .tour-row { grid-template-columns: 80px 1fr auto; gap: 10px; padding: 16px 15px; }
+            .tour-date { font-size: 1rem; }
+            .album-content { gap: 40px; }
+            .hero-subtitle { letter-spacing: 6px; }
+        }
+        @media (max-width: 480px) {
+            .nav { padding: 15px 20px; }
+            .gallery-grid { columns: 1; }
+            .hero-buttons { flex-direction: column; align-items: center; }
+            .btn { width: 100%; max-width: 260px; justify-content: center; }
+            .tour-row { grid-template-columns: 1fr 1fr; }
+            .tour-city { grid-column: 1 / -1; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Cursor -->
+<div class="cursor-main"><span class="cursor-label"></span></div>
+
+<!-- Star field -->
+<div class="starfield" id="starfield"></div>
+
+<!-- Overlays -->
+<div class="global-scanlines"></div>
+<div class="noise-overlay"></div>
+
+<!-- Preloader -->
+<div class="preloader" id="preloader">
+    <div class="preloader-scanlines"></div>
+    <div class="preloader-name">
+        <span class="r">NOVA</span>
+        <span class="c">NOVA</span>
+        <span class="main">NOVA</span>
+    </div>
+    <div class="preloader-shutoff"></div>
+</div>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobileMenu">
+    <a href="#music" onclick="closeMenu()">Music</a>
+    <a href="#tour" onclick="closeMenu()">Tour</a>
+    <a href="#gallery" onclick="closeMenu()">Gallery</a>
+    <a href="#about" onclick="closeMenu()">About</a>
+    <a href="#merch" onclick="closeMenu()">Merch</a>
+</div>
+
+<!-- Navigation -->
+<nav class="nav" id="mainNav">
+    <a href="#" class="nav-logo" data-cursor-text="HOME">NOVA</a>
+    <ul class="nav-links">
+        <li><a href="#music" data-cursor-text="PLAY">Music</a></li>
+        <li><a href="#tour" data-cursor-text="VIEW">Tour</a></li>
+        <li><a href="#gallery" data-cursor-text="VIEW">Gallery</a></li>
+        <li><a href="#about" data-cursor-text="VIEW">About</a></li>
+        <li><a href="#merch" data-cursor-text="SHOP">Merch</a></li>
+    </ul>
+    <button class="nav-hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+    </button>
+</nav>
+
+<!-- Hero -->
+<section class="hero" id="hero">
+    <div class="hero-grain"></div>
+    <div class="hero-content">
+        <div class="hero-new-album">
+            <span class="recording-dot"></span>
+            <span>New Album Out Now</span>
+        </div>
+        <div style="position:relative; display:inline-block;">
+            <h1 class="hero-title">NOVA</h1>
+            <div class="hero-title-glow" aria-hidden="true">NOVA</div>
+        </div>
+        <p class="hero-subtitle">Echoes of Tomorrow</p>
+        <div class="hero-buttons">
+            <button class="btn btn-filled" id="listenBtn" data-cursor-text="PLAY" onclick="toggleAudio(this)">
+                Listen Now ▶
+            </button>
+            <a href="#video" class="btn btn-outline" data-cursor-text="WATCH">
+                Watch Video ▷
+            </a>
+        </div>
+        <div class="waveform-mini" id="heroWaveform"></div>
+    </div>
+    <div class="hero-scroll-indicator">
+        <div class="scroll-chevron"></div>
+    </div>
+</section>
+
+<!-- Waveform / Music Section -->
+<section class="waveform-section" id="music">
+    <div class="section-label">Latest Album</div>
+    <h2 class="section-title">ECHOES OF TOMORROW</h2>
+    <div class="waveform-visualizer" id="waveformViz"></div>
+    <div class="album-content">
+        <div class="album-art">
+            <div class="album-art-glow"></div>
+            <img src="https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=600&h=600&fit=crop" alt="Album Art">
+        </div>
+        <ul class="tracklist" id="tracklist">
+            <li class="track-item" data-cursor-text="PLAY">
+                <div class="track-left">
+                    <span class="track-num">01</span>
+                    <span class="track-name">Neon Horizon</span>
+                </div>
+                <div class="track-right">
+                    <span class="track-duration">3:42</span>
+                    <button class="track-play" aria-label="Play">▶</button>
+                </div>
+            </li>
+            <li class="track-item" data-cursor-text="PLAY">
+                <div class="track-left">
+                    <span class="track-num">02</span>
+                    <span class="track-name">Midnight Protocol</span>
+                </div>
+                <div class="track-right">
+                    <span class="track-duration">4:15</span>
+                    <button class="track-play" aria-label="Play">▶</button>
+                </div>
+            </li>
+            <li class="track-item" data-cursor-text="PLAY">
+                <div class="track-left">
+                    <span class="track-num">03</span>
+                    <span class="track-name">Echoes</span>
+                </div>
+                <div class="track-right">
+                    <span class="track-duration">5:01</span>
+                    <button class="track-play" aria-label="Play">▶</button>
+                </div>
+            </li>
+            <li class="track-item" data-cursor-text="PLAY">
+                <div class="track-left">
+                    <span class="track-num">04</span>
+                    <span class="track-name">Digital Rain</span>
+                </div>
+                <div class="track-right">
+                    <span class="track-duration">3:58</span>
+                    <button class="track-play" aria-label="Play">▶</button>
+                </div>
+            </li>
+            <li class="track-item" data-cursor-text="PLAY">
+                <div class="track-left">
+                    <span class="track-num">05</span>
+                    <span class="track-name">Supernova</span>
+                </div>
+                <div class="track-right">
+                    <span class="track-duration">4:33</span>
+                    <button class="track-play" aria-label="Play">▶</button>
+                </div>
+            </li>
+            <li class="track-item" data-cursor-text="PLAY">
+                <div class="track-left">
+                    <span class="track-num">06</span>
+                    <span class="track-name">Ghost Frequency</span>
+                </div>
+                <div class="track-right">
+                    <span class="track-duration">3:27</span>
+                    <button class="track-play" aria-label="Play">▶</button>
+                </div>
+            </li>
+            <li class="track-item" data-cursor-text="PLAY">
+                <div class="track-left">
+                    <span class="track-num">07</span>
+                    <span class="track-name">Void Walker</span>
+                </div>
+                <div class="track-right">
+                    <span class="track-duration">4:49</span>
+                    <button class="track-play" aria-label="Play">▶</button>
+                </div>
+            </li>
+            <li class="track-item" data-cursor-text="PLAY">
+                <div class="track-left">
+                    <span class="track-num">08</span>
+                    <span class="track-name">Tomorrow Never Dies</span>
+                </div>
+                <div class="track-right">
+                    <span class="track-duration">5:22</span>
+                    <button class="track-play" aria-label="Play">▶</button>
+                </div>
+            </li>
+            <li class="track-item" data-cursor-text="PLAY">
+                <div class="track-left">
+                    <span class="track-num">09</span>
+                    <span class="track-name">Stardust</span>
+                </div>
+                <div class="track-right">
+                    <span class="track-duration">4:10</span>
+                    <button class="track-play" aria-label="Play">▶</button>
+                </div>
+            </li>
+            <li class="track-item" data-cursor-text="PLAY">
+                <div class="track-left">
+                    <span class="track-num">10</span>
+                    <span class="track-name">Event Horizon</span>
+                </div>
+                <div class="track-right">
+                    <span class="track-duration">6:05</span>
+                    <button class="track-play" aria-label="Play">▶</button>
+                </div>
+            </li>
+        </ul>
+    </div>
+</section>
+
+<!-- Tour -->
+<section class="tour-section" id="tour">
+    <div class="tour-globe"></div>
+    <div class="section-label">On The Road</div>
+    <div class="tour-title">
+        <span>WORLD TOUR 2025</span>
+        <span class="glitch-layer r" aria-hidden="true">WORLD TOUR 2025</span>
+        <span class="glitch-layer c" aria-hidden="true">WORLD TOUR 2025</span>
+    </div>
+    <div class="tour-list">
+        <div class="tour-row" data-cursor-text="GET">
+            <div class="tour-date">MAR 15</div>
+            <div class="tour-city">Los Angeles</div>
+            <div class="tour-venue">The Forum</div>
+            <button class="tour-btn">Tickets</button>
+        </div>
+        <div class="tour-row" data-cursor-text="GET">
+            <div class="tour-date">MAR 22</div>
+            <div class="tour-city">New York</div>
+            <div class="tour-venue">Madison Square Garden</div>
+            <button class="tour-btn">Tickets</button>
+        </div>
+        <div class="tour-row sold-out">
+            <div class="tour-date">APR 05</div>
+            <div class="tour-city">London</div>
+            <div class="tour-venue">O2 Arena</div>
+            <span class="sold-out-badge">Sold Out</span>
+        </div>
+        <div class="tour-row" data-cursor-text="GET">
+            <div class="tour-date">APR 12</div>
+            <div class="tour-city">Berlin</div>
+            <div class="tour-venue">Mercedes-Benz Arena</div>
+            <button class="tour-btn">Tickets</button>
+        </div>
+        <div class="tour-row sold-out">
+            <div class="tour-date">APR 20</div>
+            <div class="tour-city">Tokyo</div>
+            <div class="tour-venue">Tokyo Dome</div>
+            <span class="sold-out-badge">Sold Out</span>
+        </div>
+        <div class="tour-row" data-cursor-text="GET">
+            <div class="tour-date">MAY 03</div>
+            <div class="tour-city">Sydney</div>
+            <div class="tour-venue">Qudos Bank Arena</div>
+            <button class="tour-btn">Tickets</button>
+        </div>
+        <div class="tour-row" data-cursor-text="GET">
+            <div class="tour-date">MAY 15</div>
+            <div class="tour-city">Paris</div>
+            <div class="tour-venue">Accor Arena</div>
+            <button class="tour-btn">Tickets</button>
+        </div>
+        <div class="tour-row sold-out">
+            <div class="tour-date">MAY 28</div>
+            <div class="tour-city">Seoul</div>
+            <div class="tour-venue">KSPO Dome</div>
+            <span class="sold-out-badge">Sold Out</span>
+        </div>
+    </div>
+</section>
+
+<!-- Gallery -->
+<section class="gallery-section" id="gallery">
+    <div class="section-label">Gallery</div>
+    <h2 class="section-title">MOMENTS</h2>
+    <div class="gallery-grid">
+        <div class="gallery-item" data-cursor-text="VIEW">
+            <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=800&fit=crop" alt="Concert 1">
+            <div class="gallery-overlay"><span class="gallery-view-text">View</span></div>
+        </div>
+        <div class="gallery-item" data-cursor-text="VIEW">
+            <img src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=600&h=500&fit=crop" alt="Concert 2">
+            <div class="gallery-overlay"><span class="gallery-view-text">View</span></div>
+        </div>
+        <div class="gallery-item" data-cursor-text="VIEW">
+            <img src="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&h=700&fit=crop" alt="Concert 3">
+            <div class="gallery-overlay"><span class="gallery-view-text">View</span></div>
+        </div>
+        <div class="gallery-item" data-cursor-text="VIEW">
+            <img src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&h=600&fit=crop" alt="Concert 4">
+            <div class="gallery-overlay"><span class="gallery-view-text">View</span></div>
+        </div>
+        <div class="gallery-item" data-cursor-text="VIEW">
+            <img src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=600&h=900&fit=crop" alt="Concert 5">
+            <div class="gallery-overlay"><span class="gallery-view-text">View</span></div>
+        </div>
+        <div class="gallery-item" data-cursor-text="VIEW">
+            <img src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=600&h=500&fit=crop" alt="Concert 6">
+            <div class="gallery-overlay"><span class="gallery-view-text">View</span></div>
+        </div>
+        <div class="gallery-item" data-cursor-text="VIEW">
+            <img src="https://images.unsplash.com/photo-1506157786151-b8491531f063?w=600&h=700&fit=crop" alt="Concert 7">
+            <div class="gallery-overlay"><span class="gallery-view-text">View</span></div>
+        </div>
+        <div class="gallery-item" data-cursor-text="VIEW">
+            <img src="https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=600&h=600&fit=crop" alt="Concert 8">
+            <div class="gallery-overlay"><span class="gallery-view-text">View</span></div>
+        </div>
+    </div>
+</section>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+    <button class="lightbox-close" id="lightboxClose" aria-label="Close">✕</button>
+    <img src="" alt="Gallery Image" id="lightboxImg">
+</div>
+
+<!-- Video -->
+<section class="video-section" id="video">
+    <div class="section-label">Official Video</div>
+    <h2 class="section-title">ECHOES OF TOMORROW — THE FILM</h2>
+    <div class="video-wrapper" data-cursor-text="PLAY">
+        <img class="video-thumbnail" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&h=675&fit=crop" alt="Video Thumbnail">
+        <button class="video-play-btn" id="videoPlayBtn" aria-label="Play Video"></button>
+        <div class="video-iframe-wrapper" id="videoIframe"></div>
+    </div>
+</section>
+
+<!-- About -->
+<section class="about-section" id="about">
+    <div class="about-grid">
+        <div class="about-portrait" id="aboutPortrait">
+            <div class="about-portrait-glow"></div>
+            <img src="https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=600&h=800&fit=crop" alt="NOVA Portrait">
+        </div>
+        <div class="about-info">
+            <h2 class="about-name">NOVA</h2>
+            <div class="about-genres">
+                <span class="genre-pill">Electronic</span>
+                <span class="genre-pill">Synthwave</span>
+                <span class="genre-pill">Alt-Pop</span>
+                <span class="genre-pill">Cinematic</span>
+            </div>
+            <p class="about-bio">Born in the neon-lit underground of Berlin's electronic scene, NOVA emerged as a sonic architect reshaping the boundaries between synthetic textures and raw human emotion.</p>
+            <p class="about-bio">With three platinum albums and sold-out arena tours spanning five continents, NOVA has become the defining voice of a generation that lives between digital dreams and analog reality.</p>
+            <p class="about-bio">"Echoes of Tomorrow" represents the culmination of two years of sonic exploration — recorded across studios in Tokyo, Reykjavik, and Los Angeles, each track is a window into possible futures where technology and humanity find harmony.</p>
+            <div class="about-socials">
+                <a href="#" class="social-circle" data-cursor-text="FOLLOW">IG</a>
+                <a href="#" class="social-circle" data-cursor-text="FOLLOW">TW</a>
+                <a href="#" class="social-circle" data-cursor-text="FOLLOW">SP</a>
+                <a href="#" class="social-circle" data-cursor-text="FOLLOW">YT</a>
+                <a href="#" class="social-circle" data-cursor-text="FOLLOW">TK</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Merch -->
+<section class="merch-section" id="merch">
+    <div class="section-label">Official Merch</div>
+    <h2 class="section-title">WEAR THE SOUND</h2>
+    <div class="merch-track-wrapper">
+        <div class="merch-track">
+            <div class="merch-card" data-cursor-text="SHOP">
+                <div class="merch-image"><img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop" alt="Tour Tee"></div>
+                <div class="merch-info"><div class="merch-name">Echoes Tour Tee</div><div class="merch-price">$45</div><a href="#" class="merch-shop-link">Shop Now →</a></div>
+            </div>
+            <div class="merch-card" data-cursor-text="SHOP">
+                <div class="merch-image"><img src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&h=400&fit=crop" alt="Vinyl"></div>
+                <div class="merch-info"><div class="merch-name">Limited Edition Vinyl</div><div class="merch-price">$39</div><a href="#" class="merch-shop-link">Shop Now →</a></div>
+            </div>
+            <div class="merch-card" data-cursor-text="SHOP">
+                <div class="merch-image"><img src="https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=400&fit=crop" alt="Hoodie"></div>
+                <div class="merch-info"><div class="merch-name">Neon Noir Hoodie</div><div class="merch-price">$85</div><a href="#" class="merch-shop-link">Shop Now →</a></div>
+            </div>
+            <div class="merch-card" data-cursor-text="SHOP">
+                <div class="merch-image"><img src="https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400&h=400&fit=crop" alt="Cap"></div>
+                <div class="merch-info"><div class="merch-name">Supernova Cap</div><div class="merch-price">$32</div><a href="#" class="merch-shop-link">Shop Now →</a></div>
+            </div>
+            <div class="merch-card" data-cursor-text="SHOP">
+                <div class="merch-image"><img src="https://images.unsplash.com/photo-1588117305388-c2631a279f82?w=400&h=400&fit=crop" alt="Poster"></div>
+                <div class="merch-info"><div class="merch-name">Tour Poster Set</div><div class="merch-price">$25</div><a href="#" class="merch-shop-link">Shop Now →</a></div>
+            </div>
+            <div class="merch-card" data-cursor-text="SHOP">
+                <div class="merch-image"><img src="https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=400&h=400&fit=crop" alt="Long Sleeve"></div>
+                <div class="merch-info"><div class="merch-name">Void Walker Long Sleeve</div><div class="merch-price">$55</div><a href="#" class="merch-shop-link">Shop Now →</a></div>
+            </div>
+            <!-- Duplicate for seamless loop -->
+            <div class="merch-card" data-cursor-text="SHOP">
+                <div class="merch-image"><img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop" alt="Tour Tee"></div>
+                <div class="merch-info"><div class="merch-name">Echoes Tour Tee</div><div class="merch-price">$45</div><a href="#" class="merch-shop-link">Shop Now →</a></div>
+            </div>
+            <div class="merch-card" data-cursor-text="SHOP">
+                <div class="merch-image"><img src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&h=400&fit=crop" alt="Vinyl"></div>
+                <div class="merch-info"><div class="merch-name">Limited Edition Vinyl</div><div class="merch-price">$39</div><a href="#" class="merch-shop-link">Shop Now →</a></div>
+            </div>
+            <div class="merch-card" data-cursor-text="SHOP">
+                <div class="merch-image"><img src="https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=400&fit=crop" alt="Hoodie"></div>
+                <div class="merch-info"><div class="merch-name">Neon Noir Hoodie</div><div class="merch-price">$85</div><a href="#" class="merch-shop-link">Shop Now →</a></div>
+            </div>
+            <div class="merch-card" data-cursor-text="SHOP">
+                <div class="merch-image"><img src="https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400&h=400&fit=crop" alt="Cap"></div>
+                <div class="merch-info"><div class="merch-name">Supernova Cap</div><div class="merch-price">$32</div><a href="#" class="merch-shop-link">Shop Now →</a></div>
+            </div>
+            <div class="merch-card" data-cursor-text="SHOP">
+                <div class="merch-image"><img src="https://images.unsplash.com/photo-1588117305388-c2631a279f82?w=400&h=400&fit=crop" alt="Poster"></div>
+                <div class="merch-info"><div class="merch-name">Tour Poster Set</div><div class="merch-price">$25</div><a href="#" class="merch-shop-link">Shop Now →</a></div>
+            </div>
+            <div class="merch-card" data-cursor-text="SHOP">
+                <div class="merch-image"><img src="https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=400&h=400&fit=crop" alt="Long Sleeve"></div>
+                <div class="merch-info"><div class="merch-name">Void Walker Long Sleeve</div><div class="merch-price">$55</div><a href="#" class="merch-shop-link">Shop Now →</a></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Newsletter -->
+<section class="newsletter-section" id="newsletter">
+    <div class="newsletter-pulse"></div>
+    <div class="newsletter-content">
+        <h2 class="newsletter-heading">JOIN THE FANBASE</h2>
+        <p class="newsletter-sub">Get exclusive access to unreleased tracks, behind-the-scenes content, presale codes, and more. Be the first to know.</p>
+        <form class="newsletter-form" onsubmit="handleJoin(event)">
+            <input type="email" placeholder="your@email.com" required>
+            <button type="submit">Join</button>
+        </form>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-logo">NOVA</div>
+    <div class="footer-socials">
+        <a href="#" class="footer-social-link">Instagram</a>
+        <a href="#" class="footer-social-link">Twitter</a>
+        <a href="#" class="footer-social-link">Spotify</a>
+        <a href="#" class="footer-social-link">YouTube</a>
+        <a href="#" class="footer-social-link">TikTok</a>
+    </div>
+    <p class="footer-copy">© 2025 NOVA. All rights reserved. Management: Stellar Artists Group.</p>
+    <button class="back-to-top" id="backToTop" data-cursor-text="TOP">↑ Back to Top</button>
+</footer>
+
+<script>
+// ============================================
+// GSAP + PLUGINS
+// ============================================
+gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+
+// ============================================
+// STAR FIELD
+// ============================================
+(function() {
+    const sf = document.getElementById('starfield');
+    for (let i = 0; i < 200; i++) {
+        const s = document.createElement('div');
+        s.className = 'star';
+        const size = Math.random() * 2 + 0.5;
+        s.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*200}%;opacity:${Math.random()*0.5+0.1};animation-duration:${Math.random()*40+25}s;animation-delay:${Math.random()*20}s;`;
+        sf.appendChild(s);
+    }
+})();
+
+// ============================================
+// CUSTOM CURSOR
+// ============================================
+const cursorMain = document.querySelector('.cursor-main');
+const cursorLabel = document.querySelector('.cursor-label');
+const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+let mx = -100, my = -100;
+
+// Cursor trails
+const trails = [];
+if (!isTouchDevice) {
+    for (let i = 0; i < 6; i++) {
+        const t = document.createElement('div');
+        t.className = 'cursor-trail';
+        t.style.opacity = 0.4 - i * 0.06;
+        const sz = 6 - i * 0.8;
+        t.style.width = sz + 'px';
+        t.style.height = sz + 'px';
+        document.body.appendChild(t);
+        trails.push({ el: t, x: -100, y: -100 });
+    }
+
+    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+    gsap.ticker.add(() => {
+        gsap.to(cursorMain, { x: mx, y: my, duration: 0.2, ease: 'power2.out',
+            onUpdate: () => {
+                cursorMain.style.left = '0px'; cursorMain.style.top = '0px';
+                cursorMain.style.transform = `translate(calc(${gsap.getProperty(cursorMain,'x')}px - 50%), calc(${gsap.getProperty(cursorMain,'y')}px - 50%))`;
+            }
+        });
+        let prevX = mx, prevY = my;
+        trails.forEach((t, i) => {
+            const speed = 0.15 - i * 0.015;
+            t.x += (prevX - t.x) * speed;
+            t.y += (prevY - t.y) * speed;
+            t.el.style.transform = `translate(${t.x - 3}px, ${t.y - 3}px)`;
+            prevX = t.x; prevY = t.y;
+        });
+    });
+
+    document.querySelectorAll('[data-cursor-text]').forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            cursorLabel.textContent = el.getAttribute('data-cursor-text');
+            cursorMain.classList.add('active');
+        });
+        el.addEventListener('mouseleave', () => {
+            cursorMain.classList.remove('active');
+        });
+    });
+
+    document.querySelectorAll('a:not([data-cursor-text]), button:not([data-cursor-text])').forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            gsap.to(cursorMain, { scale: 1.4, duration: 0.3 });
+        });
+        el.addEventListener('mouseleave', () => {
+            gsap.to(cursorMain, { scale: 1, duration: 0.3 });
+        });
+    });
+} else {
+    cursorMain.style.display = 'none';
+    trails.forEach(t => t.el.style.display = 'none');
+}
+
+// ============================================
+// PRELOADER
+// ============================================
+const plTl = gsap.timeline();
+
+// Flicker effect
+plTl.to('.preloader', {
+    keyframes: [
+        { opacity: 0.2, duration: 0.05 },
+        { opacity: 1, duration: 0.05 },
+        { opacity: 0.1, duration: 0.08 },
+        { opacity: 1, duration: 0.05 },
+        { opacity: 0.3, duration: 0.06 },
+        { opacity: 1, duration: 0.05 }
+    ],
+    delay: 0.3
+});
+
+// Show for a moment
+plTl.to('.preloader-name', { duration: 1.8 });
+
+// CRT shutoff
+plTl.to('.preloader-shutoff', {
+    opacity: 1, duration: 0.08
+});
+plTl.to('.preloader-shutoff', {
+    scaleY: 0.003, duration: 0.3, ease: 'power2.in',
+    backgroundColor: '#fff'
+});
+plTl.to('.preloader-shutoff', {
+    scaleX: 0, duration: 0.2, ease: 'power2.in'
+});
+plTl.to('.preloader', {
+    opacity: 0, duration: 0.3,
+    onComplete: () => { document.getElementById('preloader').style.display = 'none'; }
+});
+
+// Hero entrance
+plTl.from('.hero-new-album', { y: 20, opacity: 0, duration: 0.8, ease: 'power3.out' }, '-=0.1');
+plTl.from('.hero-title', { y: 60, opacity: 0, duration: 1, ease: 'power3.out' }, '-=0.5');
+plTl.from('.hero-title-glow', { y: 60, opacity: 0, duration: 1, ease: 'power3.out' }, '-=0.9');
+plTl.from('.hero-subtitle', { y: 30, opacity: 0, duration: 0.8, ease: 'power3.out' }, '-=0.6');
+plTl.from('.hero-buttons', { y: 30, opacity: 0, duration: 0.8, ease: 'power3.out' }, '-=0.5');
+plTl.from('.hero-scroll-indicator', { opacity: 0, duration: 0.6 }, '-=0.3');
+plTl.from('.hero-bg-grid', { opacity: 0, duration: 1 }, '-=0.8');
+
+// ============================================
+// NAV SCROLL
+// ============================================
+ScrollTrigger.create({
+    start: 'top -80',
+    onUpdate: self => {
+        document.getElementById('mainNav').classList.toggle('scrolled', self.progress > 0);
+    }
+});
+
+// Smooth scroll links
+document.querySelectorAll('a[href^="#"]').forEach(link => {
+    link.addEventListener('click', e => {
+        const href = link.getAttribute('href');
+        if (href === '#') return;
+        e.preventDefault();
+        const target = document.querySelector(href);
+        if (target) gsap.to(window, { scrollTo: { y: target, offsetY: 0 }, duration: 1.2, ease: 'power3.inOut' });
+    });
+});
+
+// Back to top
+document.getElementById('backToTop').addEventListener('click', () => {
+    gsap.to(window, { scrollTo: 0, duration: 1.5, ease: 'power3.inOut' });
+});
+
+// ============================================
+// MOBILE MENU
+// ============================================
+const hamburger = document.getElementById('hamburger');
+const mobileMenu = document.getElementById('mobileMenu');
+let menuOpen = false;
+
+hamburger.addEventListener('click', () => {
+    menuOpen = !menuOpen;
+    hamburger.classList.toggle('open', menuOpen);
+    mobileMenu.classList.toggle('open', menuOpen);
+    if (menuOpen) {
+        document.body.style.overflow = 'hidden';
+        gsap.to('#mobileMenu a', { opacity: 1, x: 0, duration: 0.5, stagger: 0.08, ease: 'power3.out', delay: 0.15 });
+    } else {
+        document.body.style.overflow = '';
+        gsap.set('#mobileMenu a', { opacity: 0, x: 40 });
+    }
+});
+
+function closeMenu() {
+    menuOpen = false;
+    hamburger.classList.remove('open');
+    mobileMenu.classList.remove('open');
+    document.body.style.overflow = '';
+    gsap.set('#mobileMenu a', { opacity: 0, x: 40 });
+}
+
+// ============================================
+// RIPPLE EFFECT ON BUTTONS
+// ============================================
+document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple';
+        const rect = this.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
+        ripple.style.top = (e.clientY - rect.top - size/2) + 'px';
+        this.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+    });
+});
+
+// ============================================
+// AUDIO (HOWLER.JS)
+// ============================================
+let mainSound = null;
+let isPlaying = false;
+
+// Hero waveform bars
+const heroWaveform = document.getElementById('heroWaveform');
+for (let i = 0; i < 20; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.style.animationDelay = (Math.random() * 0.8) + 's';
+    bar.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
+    heroWaveform.appendChild(bar);
+}
+
+function toggleAudio(btn) {
+    if (!mainSound) {
+        mainSound = new Howl({
+            src: ['https://cdn.freesound.org/previews/612/612095_5674468-lq.mp3'],
+            html5: true,
+            volume: 0.5,
+            onend: () => {
+                isPlaying = false;
+                btn.textContent = 'Listen Now ▶';
+                heroWaveform.classList.remove('active');
+            }
+        });
+    }
+    if (isPlaying) {
+        mainSound.pause();
+        isPlaying = false;
+        btn.textContent = 'Listen Now ▶';
+        heroWaveform.classList.remove('active');
+    } else {
+        mainSound.play();
+        isPlaying = true;
+        btn.textContent = 'Pause ❚❚';
+        heroWaveform.classList.add('active');
+    }
+}
+
+// Track list clicks
+let trackSound = null;
+document.querySelectorAll('.track-item').forEach(item => {
+    item.addEventListener('click', () => {
+        document.querySelectorAll('.track-item').forEach(t => t.classList.remove('playing'));
+        item.classList.add('playing');
+        if (trackSound) { trackSound.stop(); }
+        trackSound = new Howl({
+            src: ['https://cdn.freesound.org/previews/612/612095_5674468-lq.mp3'],
+            html5: true, volume: 0.4,
+            onend: () => { item.classList.remove('playing'); }
+        });
+        trackSound.play();
+    });
+});
+
+// ============================================
+// WAVEFORM VISUALIZER
+// ============================================
+const waveformViz = document.getElementById('waveformViz');
+const barCount = 60;
+for (let i = 0; i < barCount; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'wave-bar';
+    waveformViz.appendChild(bar);
+}
+
+ScrollTrigger.create({
+    trigger: '.waveform-visualizer',
+    start: 'top 80%',
+    onEnter: () => {
+        document.querySelectorAll('.wave-bar').forEach((bar, i) => {
+            const h = 15 + Math.random() * 85;
+            gsap.to(bar, {
+                height: h + '%', duration: 0.8,
+                delay: i * 0.02, ease: 'power3.out'
+            });
+            // Continuous animation
+            gsap.to(bar, {
+                height: (10 + Math.random() * 70) + '%',
+                duration: 0.5 + Math.random() * 1,
+                repeat: -1, yoyo: true,
+                delay: 0.8 + i * 0.02,
+                ease: 'sine.inOut'
+            });
+        });
+    },
+    once: true
+});
+
+// Album content reveal
+gsap.from('.album-art', {
+    y: 50, opacity: 0, duration: 1, ease: 'power3.out',
+    scrollTrigger: { trigger: '.album-content', start: 'top 75%' }
+});
+
+gsap.from('.track-item', {
+    x: 30, opacity: 0, duration: 0.6, stagger: 0.05, ease: 'power3.out',
+    scrollTrigger: { trigger: '.tracklist', start: 'top 75%' }
+});
+
+// ============================================
+// TOUR SECTION ANIMATIONS
+// ============================================
+// Glitch on title
+ScrollTrigger.create({
+    trigger: '.tour-title',
+    start: 'top 70%',
+    onEnter: () => {
+        const layers = document.querySelectorAll('.tour-title .glitch-layer');
+        gsap.to(layers, {
+            keyframes: [
+                { opacity: 0.8, duration: 0.08 },
+                { opacity: 0, duration: 0.05 },
+                { opacity: 0.6, duration: 0.08 },
+                { opacity: 0, duration: 0.05 },
+                { opacity: 0.7, duration: 0.1 },
+                { opacity: 0, duration: 0.5 }
+            ]
+        });
+    }
+});
+
+// Tour rows slide in
+document.querySelectorAll('.tour-row').forEach((row, i) => {
+    gsap.to(row, {
+        opacity: 1,
+        x: 0,
+        duration: 0.7,
+        ease: 'power3.out',
+        scrollTrigger: { trigger: row, start: 'top 85%' }
+    });
+    gsap.set(row, { x: i % 2 === 0 ? -60 : 60 });
+});
+
+// ============================================
+// GALLERY ANIMATIONS
+// ============================================
+document.querySelectorAll('.gallery-item').forEach((item, i) => {
+    gsap.to(item, {
+        clipPath: 'circle(75% at 50% 50%)',
+        duration: 1.2, ease: 'power3.out',
+        delay: i * 0.1,
+        scrollTrigger: { trigger: item, start: 'top 80%' }
+    });
+});
+
+// Lightbox
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightboxImg');
+
+document.querySelectorAll('.gallery-item').forEach(item => {
+    item.addEventListener('click', () => {
+        const src = item.querySelector('img').src;
+        lightboxImg.src = src;
+        lightbox.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    });
+});
+
+document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+
+function closeLightbox() {
+    lightbox.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// ============================================
+// VIDEO SECTION
+// ============================================
+gsap.from('.video-wrapper', {
+    y: 60, opacity: 0, scale: 0.95,
+    duration: 1, ease: 'power3.out',
+    scrollTrigger: { trigger: '.video-section', start: 'top 65%' }
+});
+
+// Parallax on video thumbnail
+gsap.to('.video-thumbnail', {
+    yPercent: 15, ease: 'none',
+    scrollTrigger: {
+        trigger: '.video-section', start: 'top bottom',
+        end: 'bottom top', scrub: 1
+    }
+});
+
+document.getElementById('videoPlayBtn').addEventListener('click', () => {
+    const iframeWrapper = document.getElementById('videoIframe');
+    iframeWrapper.innerHTML = '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
+    iframeWrapper.classList.add('active');
+});
+
+// ============================================
+// ABOUT SECTION
+// ============================================
+// B&W to color transition
+ScrollTrigger.create({
+    trigger: '#aboutPortrait',
+    start: 'top 60%',
+    onEnter: () => document.getElementById('aboutPortrait').classList.add('colored'),
+    onLeaveBack: () => document.getElementById('aboutPortrait').classList.remove('colored')
+});
+
+gsap.from('.about-portrait', {
+    x: -60, opacity: 0, duration: 1, ease: 'power3.out',
+    scrollTrigger: { trigger: '.about-grid', start: 'top 65%' }
+});
+
+gsap.from('.about-info > *', {
+    y: 30, opacity: 0, duration: 0.7, stagger: 0.1, ease: 'power3.out',
+    scrollTrigger: { trigger: '.about-info', start: 'top 70%' }
+});
+
+// ============================================
+// MERCH SECTION
+// ============================================
+gsap.from('.merch-track-wrapper', {
+    y: 40, opacity: 0, duration: 1, ease: 'power3.out',
+    scrollTrigger: { trigger: '.merch-section', start: 'top 70%' }
+});
+
+// ============================================
+// NEWSLETTER
+// ============================================
+gsap.from('.newsletter-content', {
+    y: 50, opacity: 0, duration: 1, ease: 'power3.out',
+    scrollTrigger: { trigger: '.newsletter-section', start: 'top 70%' }
+});
+
+function handleJoin(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button');
+    const input = e.target.querySelector('input');
+    btn.textContent = 'Welcome! ✓';
+    btn.style.background = '#00d4ff';
+    input.value = '';
+    setTimeout(() => {
+        btn.textContent = 'Join';
+        btn.style.background = '';
+    }, 3000);
+}
+
+// ============================================
+// SECTION TITLE REVEALS
+// ============================================
+document.querySelectorAll('.section-title, .section-label, .tour-title > span:first-child').forEach(el => {
+    gsap.from(el, {
+        y: 40, opacity: 0, duration: 0.9, ease: 'power3.out',
+        scrollTrigger: { trigger: el, start: 'top 80%' }
+    });
+});
+
+// ============================================
+// FOOTER
+// ============================================
+gsap.from('.footer > *', {
+    y: 30, opacity: 0, duration: 0.7, stagger: 0.1, ease: 'power3.out',
+    scrollTrigger: { trigger: '.footer', start: 'top 85%' }
+});
+
+// ============================================
+// PARALLAX ON HERO
+// ============================================
+gsap.to('.hero-content', {
+    yPercent: -30, ease: 'none',
+    scrollTrigger: {
+        trigger: '.hero', start: 'top top',
+        end: 'bottom top', scrub: 1
+    }
+});
+
+// ============================================
+// MAGNETIC BUTTONS
+// ============================================
+document.querySelectorAll('.btn, .tour-btn, .back-to-top, .social-circle').forEach(btn => {
+    btn.addEventListener('mousemove', e => {
+        const rect = btn.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width / 2;
+        const y = e.clientY - rect.top - rect.height / 2;
+        gsap.to(btn, { x: x * 0.2, y: y * 0.2, duration: 0.3, ease: 'power2.out' });
+    });
+    btn.addEventListener('mouseleave', () => {
+        gsap.to(btn, { x: 0, y: 0, duration: 0.5, ease: 'elastic.out(1, 0.5)' });
+    });
+});
+
+// ============================================
+// BACKGROUND COLOR SHIFTS
+// ============================================
+const sectionBgs = [
+    { sel: '.waveform-section', color: '#080808' },
+    { sel: '.tour-section', color: '#060608' },
+    { sel: '.gallery-section', color: '#050505' },
+    { sel: '.video-section', color: '#080506' },
+    { sel: '.about-section', color: '#050607' },
+    { sel: '.merch-section', color: '#070707' },
+    { sel: '.newsletter-section', color: '#050505' }
+];
+
+sectionBgs.forEach(s => {
+    ScrollTrigger.create({
+        trigger: s.sel, start: 'top 60%', end: 'bottom 40%',
+        onEnter: () => gsap.to('body', { backgroundColor: s.color, duration: 0.8 }),
+        onEnterBack: () => gsap.to('body', { backgroundColor: s.color, duration: 0.8 })
+    });
+});
+
+ScrollTrigger.create({
+    trigger: '.hero', start: 'top top',
+    onEnter: () => gsap.to('body', { backgroundColor: '#050505', duration: 0.5 }),
+    onEnterBack: () => gsap.to('body', { backgroundColor: '#050505', duration: 0.5 })
+});
+</script>
+</body>
+</html>
